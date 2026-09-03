@@ -181,6 +181,7 @@ type OverpassElement = {
 };
 
 function placeCategory(tags: Record<string, string>) {
+  if (tags.man_made === "observatory" || /dark sky|astronom|stargaz/i.test(tags.name ?? "")) return "Astronomy site";
   if (tags.tourism === "viewpoint") return "Viewpoint";
   if (tags.tourism === "camp_site") return "Campsite";
   if (tags.leisure === "nature_reserve") return "Nature reserve";
@@ -191,13 +192,18 @@ function placeCategory(tags: Record<string, string>) {
 export async function findScoutingPlaces(latitude: number, longitude: number, radiusKm: number) {
   const roundedLatitude = Number(latitude.toFixed(2));
   const roundedLongitude = Number(longitude.toFixed(2));
-  const radiusMeters = Math.round(Math.min(200, Math.max(5, radiusKm)) * 1000);
-  const query = `[out:json][timeout:15];(
+  const radiusMeters = Math.round(Math.min(1000, Math.max(5, radiusKm)) * 1000);
+  const localSelectors = `
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["tourism"="viewpoint"]["name"];
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["tourism"="camp_site"]["name"];
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["leisure"="nature_reserve"]["name"];
+    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["boundary"="protected_area"]["name"];`;
+  const longRangeSelectors = `
+    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["name"~"dark sky|observatory|astronomy|stargaz",i];
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["boundary"="national_park"]["name"];
-    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["boundary"="protected_area"]["name"];
+    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["protect_class"~"^(1|2)$"]["name"];`;
+  const query = `[out:json][timeout:25];(${radiusKm <= 250 ? localSelectors : longRangeSelectors}
+    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["man_made"="observatory"]["name"];
   );out center 80;`;
   const response = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",

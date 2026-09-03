@@ -19,6 +19,10 @@ function formatTime(date: Date | null) {
   return date ? new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(date) : "Not visible";
 }
 
+function miles(kilometers: number) {
+  return Math.round(kilometers * 0.621371);
+}
+
 function plannerHref(place: ScoutingPlace, plan: NightPlan) {
   const time = plan.metrics.find((metric) => metric.bestTime)?.bestTime ?? plan.date;
   const params = new URLSearchParams({
@@ -37,7 +41,7 @@ export function TripPlanner() {
   const [longitude, setLongitude] = useState(-77.0369);
   const [locationName, setLocationName] = useState("Washington, DC");
   const [locationMessage, setLocationMessage] = useState("");
-  const [radiusKm, setRadiusKm] = useState(80);
+  const [radiusKm, setRadiusKm] = useState(250);
   const [mode, setMode] = useState<"flexible" | "fixed">("flexible");
   const [startDate, setStartDate] = useState(dateInput(today));
   const [endDate, setEndDate] = useState(dateInput(twoWeeks));
@@ -154,7 +158,7 @@ export function TripPlanner() {
               <label>Longitude<input type="number" min="-180" max="180" step="0.0001" value={longitude} onChange={(event) => { setLongitude(Number(event.target.value)); setLocationName("Custom coordinates"); }} /></label>
               <button className="trip-location-button" onClick={requestLocation}><LocateFixed size={16} /> Use my location</button>
             </div>
-            <label className="radius-control"><span><b>Travel radius</b><output>{radiusKm} km</output></span><input type="range" min="10" max="200" step="10" value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))} /><small>Straight-line search radius · driving distance may be longer</small></label>
+            <label className="radius-control"><span><b>Travel radius</b><output>{radiusKm} km · {miles(radiusKm)} mi</output></span><input type="range" min="10" max="1000" step="10" value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))} /><small>Straight-line search radius · driving distance may be longer</small></label>
           </div>
           <p className="trip-location-name"><Compass size={14} /> {locationName} · {latitude.toFixed(4)}°, {longitude.toFixed(4)}°</p>
           {locationMessage && <p className="trip-message">{locationMessage}</p>}
@@ -192,12 +196,12 @@ export function TripPlanner() {
       </section>}
 
       {plans.length > 0 && <section className="place-results">
-        <div className="trip-results-heading"><div><p className="eyebrow">Scouting candidates</p><h2>Outdoor areas within {radiusKm} km</h2></div><p>These are named public-area map features—not verified dark sites. Confirm access hours, safety, horizon, parking, permits, and local light pollution before leaving.</p></div>
+        <div className="trip-results-heading"><div><p className="eyebrow">Scouting candidates</p><h2>Outdoor areas within {radiusKm} km · {miles(radiusKm)} mi</h2></div><p>Long-range searches prioritize astronomy sites and major protected lands. These are map features—not verified dark sites. Confirm access, safety, horizon, parking, permits, and local light pollution before leaving.</p></div>
         {message && <p className={`trip-alert ${status === "error" ? "error" : ""}`}>{message}</p>}
         {places.length > 0 && bestPlan && <div className="place-grid">{places.map((place) => <article key={place.id}>
           <span className="place-category">{place.category}</span>
           <h3>{place.name}</h3>
-          <p>{place.distanceKm.toFixed(1)} km {place.direction} · straight line</p>
+          <p>{place.distanceKm.toFixed(1)} km · {miles(place.distanceKm)} mi {place.direction} · straight line</p>
           <div>
             <a href={`https://www.openstreetmap.org/?mlat=${place.latitude}&mlon=${place.longitude}#map=13/${place.latitude}/${place.longitude}`} target="_blank" rel="noreferrer">Open map</a>
             <Link href={plannerHref(place, bestPlan)}>Check sky & weather <ChevronRight size={14} /></Link>
