@@ -15,6 +15,8 @@ export type TargetCatalogPayload = {
   generated: string;
   source: string;
   license: string;
+  count: number;
+  files: string[];
   objects: TargetTuple[];
 };
 

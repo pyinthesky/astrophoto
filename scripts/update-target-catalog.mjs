@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 
 const sources = [
   "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
@@ -72,9 +72,21 @@ const payload = {
   generated: new Date().toISOString().slice(0, 10),
   source: "OpenNGC",
   license: "CC-BY-SA-4.0",
-  objects: rows,
 };
 
-await mkdir(new URL("../public/data/", import.meta.url), { recursive: true });
-await writeFile(new URL("../public/data/targets.json", import.meta.url), JSON.stringify(payload));
-console.log(`Wrote ${rows.length.toLocaleString()} target records.`);
+const dataDirectory = new URL("../public/data/targets/", import.meta.url);
+await rm(dataDirectory, { recursive: true, force: true });
+await rm(new URL("../public/data/targets.json", import.meta.url), { force: true });
+await mkdir(dataDirectory, { recursive: true });
+
+const shardCount = 8;
+const shardSize = Math.ceil(rows.length / shardCount);
+const files = [];
+for (let index = 0; index < shardCount; index += 1) {
+  const file = `targets-${index + 1}.json`;
+  const objects = rows.slice(index * shardSize, (index + 1) * shardSize);
+  files.push(file);
+  await writeFile(new URL(file, dataDirectory), JSON.stringify(objects));
+}
+await writeFile(new URL("index.json", dataDirectory), JSON.stringify({ ...payload, count: rows.length, files }));
+console.log(`Wrote ${rows.length.toLocaleString()} target records across ${files.length} shards.`);

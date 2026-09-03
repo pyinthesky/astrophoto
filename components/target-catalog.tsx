@@ -41,12 +41,17 @@ export function TargetCatalog() {
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
-    fetch("../data/targets.json")
+    fetch("../data/targets/index.json")
       .then((response) => {
         if (!response.ok) throw new Error("Catalogue unavailable");
         return response.json();
       })
-      .then((data: TargetCatalogPayload) => setPayload(data))
+      .then(async (index: Omit<TargetCatalogPayload, "objects">) => {
+        const responses = await Promise.all(index.files.map((file) => fetch(`../data/targets/${file}`)));
+        if (responses.some((response) => !response.ok)) throw new Error("Catalogue shard unavailable");
+        const shards = await Promise.all(responses.map((response) => response.json() as Promise<TargetTuple[]>));
+        setPayload({ ...index, objects: shards.flat() });
+      })
       .catch(() => setError("The target catalogue could not be loaded. Refresh the page and try again."));
   }, []);
 
