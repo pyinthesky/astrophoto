@@ -53,6 +53,7 @@ const softwareApplicationJsonLd = {
     "Full declination-aware NPF rule",
     "Camera sensor and pixel-pitch database",
     "Milky Way and bright-star sky planner",
+    "Field of view, pixel scale, star drift, and integration calculators",
     "Lightroom astrophotography preset downloads",
   ],
 };
