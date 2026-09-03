@@ -58,7 +58,16 @@ export function SkyPlanner() {
   }>({ key: "", status: "idle", message: "", conditions: null });
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setDateTime(toLocalInput(new Date())));
+    const frame = window.requestAnimationFrame(() => {
+      const params = new URLSearchParams(window.location.search);
+      const queryLatitude = Number(params.get("latitude"));
+      const queryLongitude = Number(params.get("longitude"));
+      const queryDate = params.get("date");
+      if (params.has("latitude") && Number.isFinite(queryLatitude) && queryLatitude >= -90 && queryLatitude <= 90) setLatitude(queryLatitude);
+      if (params.has("longitude") && Number.isFinite(queryLongitude) && queryLongitude >= -180 && queryLongitude <= 180) setLongitude(queryLongitude);
+      if (params.get("location")) setLocationName(params.get("location")!.slice(0, 80));
+      setDateTime(queryDate && !Number.isNaN(new Date(queryDate).getTime()) ? queryDate : toLocalInput(new Date()));
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
