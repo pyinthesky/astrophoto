@@ -1,4 +1,5 @@
 import { Body, Equator, Horizon, Illumination, Observer } from "astronomy-engine";
+import { darkSkyPlaces } from "@/lib/dark-sky-places";
 import { milkyWayCore, targetPosition, type EquatorialTarget } from "@/lib/sky";
 
 export type TripTarget = EquatorialTarget & {
@@ -34,6 +35,7 @@ export type ScoutingPlace = {
   longitude: number;
   distanceKm: number;
   direction: string;
+  source: "certified" | "map";
 };
 
 export const tripTargets: TripTarget[] = [
@@ -189,31 +191,51 @@ function placeCategory(tags: Record<string, string>) {
   return "Protected area";
 }
 
+export function findCertifiedDarkSkyPlaces(latitude: number, longitude: number, radiusKm: number) {
+  return darkSkyPlaces
+    .map((place): ScoutingPlace => ({
+      id: `dark-sky-${place.id}`,
+      name: place.name,
+      category: `Certified dark-sky ${place.designation.toLowerCase()}`,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      distanceKm: haversineKm(latitude, longitude, place.latitude, place.longitude),
+      direction: bearing(latitude, longitude, place.latitude, place.longitude),
+      source: "certified",
+    }))
+    .filter((place) => place.distanceKm <= radiusKm)
+    .sort((a, b) => a.distanceKm - b.distanceKm);
+}
+
 export async function findScoutingPlaces(latitude: number, longitude: number, radiusKm: number) {
+  const searchRadiusKm = Math.min(1000, Math.max(5, radiusKm));
+  const certified = findCertifiedDarkSkyPlaces(latitude, longitude, searchRadiusKm);
+  if (searchRadiusKm > 250) return certified.slice(0, 12);
+
   const roundedLatitude = Number(latitude.toFixed(2));
   const roundedLongitude = Number(longitude.toFixed(2));
-  const radiusMeters = Math.round(Math.min(1000, Math.max(5, radiusKm)) * 1000);
+  const radiusMeters = Math.round(searchRadiusKm * 1000);
   const localSelectors = `
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["tourism"="viewpoint"]["name"];
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["tourism"="camp_site"]["name"];
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["leisure"="nature_reserve"]["name"];
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["boundary"="protected_area"]["name"];`;
-  const longRangeSelectors = `
-    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["name"~"dark sky|observatory|astronomy|stargaz",i];
-    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["boundary"="national_park"]["name"];
-    nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["protect_class"~"^(1|2)$"]["name"];`;
-  const query = `[out:json][timeout:25];(${radiusKm <= 250 ? localSelectors : longRangeSelectors}
+  const query = `[out:json][timeout:25];(${localSelectors}
     nwr(around:${radiusMeters},${roundedLatitude},${roundedLongitude})["man_made"="observatory"]["name"];
   );out center 80;`;
-  const response = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    body: new URLSearchParams({ data: query }),
-  });
-  if (!response.ok) throw new Error(response.status === 429 || response.status === 504
-    ? "The public place-search service is busy. Try again in a few minutes."
-    : "Nearby places could not be loaded right now.");
-  const data = await response.json() as { elements?: OverpassElement[] };
+  let data: { elements?: OverpassElement[] };
+  try {
+    const response = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: new URLSearchParams({ data: query }),
+    });
+    if (!response.ok) throw new Error("Map search unavailable");
+    data = await response.json() as { elements?: OverpassElement[] };
+  } catch {
+    if (certified.length) return certified.slice(0, 12);
+    throw new Error("The public place-search service is busy. Try again in a few minutes.");
+  }
   const unique = new Map<string, ScoutingPlace>();
   (data.elements ?? []).forEach((element) => {
     const tags = element.tags ?? {};
@@ -231,7 +253,18 @@ export async function findScoutingPlaces(latitude: number, longitude: number, ra
       longitude: placeLongitude,
       distanceKm,
       direction: bearing(latitude, longitude, placeLatitude, placeLongitude),
+      source: "map",
     });
   });
-  return [...unique.values()].sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 12);
+  const merged = [...certified, ...unique.values()];
+  const seen = new Set<string>();
+  return merged
+    .filter((place) => {
+      const key = place.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => Number(b.source === "certified") - Number(a.source === "certified") || a.distanceKm - b.distanceKm)
+    .slice(0, 12);
 }

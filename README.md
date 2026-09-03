@@ -19,7 +19,7 @@ A modern, fully client-side rebuild of Frédéric Michaud's astrophotography cal
 - Indexable static routes, canonical metadata, structured data, sitemap, and social share card
 - Static export with no server, account, analytics, or personal data collection
 
-Sky calculations run in the browser. Coordinates are transmitted only after an explicit weather or nearby-place request, rounded to 0.01°, to Open-Meteo or the OpenStreetMap Overpass API respectively. The trip planner can save a chosen starting point in the browser for convenience.
+Sky calculations run in the browser. Coordinates are transmitted only after an explicit weather or nearby-place request, rounded to 0.01°, to Open-Meteo or the OpenStreetMap Overpass API respectively. Trip Planner searches over 250 km match against an embedded catalogue of certified dark-sky destinations and do not transmit coordinates. The trip planner can save a chosen starting point in the browser for convenience.
 
 ## Run locally
 

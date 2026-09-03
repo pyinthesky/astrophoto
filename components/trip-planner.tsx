@@ -116,7 +116,9 @@ export function TripPlanner() {
       const nearby = await findScoutingPlaces(latitude, longitude, radiusKm);
       setPlaces(nearby);
       setStatus("ready");
-      if (!nearby.length) setMessage("No named scouting areas were returned in this radius. Try a wider search or use the date results from your own spot.");
+      if (!nearby.length) setMessage(radiusKm > 250
+        ? "No certified dark-sky destination was found in the catalogue within this radius. Try a wider search or use the date results from your own spot."
+        : "No named scouting areas were returned in this radius. Try a wider search or use the date results from your own spot.");
     } catch (error) {
       setPlaces([]);
       setStatus("error");
@@ -178,7 +180,7 @@ export function TripPlanner() {
         </div>
 
         <div className="trip-action">
-          <div><ShieldCheck size={16} /><p>Astronomy stays on-device. When you press the button, rounded coordinates are sent to OpenStreetMap’s public search service.</p></div>
+          <div><ShieldCheck size={16} /><p>Astronomy stays on-device. Long-range destination matching also stays on-device; nearby searches send rounded coordinates to OpenStreetMap’s public search service.</p></div>
           <button onClick={buildTrip} disabled={status === "loading"}><Sparkles size={17} /> {status === "loading" ? "Finding nearby areas…" : "Find dates & places"}</button>
         </div>
       </section>
@@ -196,7 +198,7 @@ export function TripPlanner() {
       </section>}
 
       {plans.length > 0 && <section className="place-results">
-        <div className="trip-results-heading"><div><p className="eyebrow">Scouting candidates</p><h2>Outdoor areas within {radiusKm} km · {miles(radiusKm)} mi</h2></div><p>Long-range searches prioritize astronomy sites and major protected lands. These are map features—not verified dark sites. Confirm access, safety, horizon, parking, permits, and local light pollution before leaving.</p></div>
+        <div className="trip-results-heading"><div><p className="eyebrow">Scouting candidates</p><h2>Outdoor areas within {radiusKm} km · {miles(radiusKm)} mi</h2></div><p>Long-range searches use certified Dark Sky Parks, Reserves, and Sanctuaries. Nearby searches also include OpenStreetMap scouting features. Confirm access, safety, horizon, parking, permits, and current conditions before leaving.</p></div>
         {message && <p className={`trip-alert ${status === "error" ? "error" : ""}`}>{message}</p>}
         {places.length > 0 && bestPlan && <div className="place-grid">{places.map((place) => <article key={place.id}>
           <span className="place-category">{place.category}</span>
@@ -215,7 +217,7 @@ export function TripPlanner() {
     </section>
     <footer>
       <p>Sky calculations run locally with Astronomy Engine. Target coordinates use J2000 catalogue positions from SIMBAD/CDS and established astronomical references.</p>
-      <p>Nearby features © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>. Place search uses the community Overpass API and may occasionally be unavailable.</p>
+      <p>Certified-place coordinates come from <a href="https://www.wikidata.org/wiki/Wikidata:Licensing" target="_blank" rel="noreferrer">Wikidata (CC0)</a>, with designations from <a href="https://darksky.org/what-we-do/international-dark-sky-places/all-places/" target="_blank" rel="noreferrer">DarkSky International</a>. Nearby features © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</p>
     </footer>
   </main>;
 }
