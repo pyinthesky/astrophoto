@@ -142,6 +142,15 @@ html[data-theme="night"] :where(.eyebrow,.brand b,.brand-mark,.step-number,.sens
 html[data-theme="night"] :where(.main-nav a.active,.mode-tabs button.active,.location-button,.date-input-row button,.download-primary,.target-buttons button.active,.target-buttons button:hover) { background: #0a0101!important; border-color: #4a1515!important; box-shadow: none!important; }
 html[data-theme="night"] :where(.intro h1 em,.planner-intro h1 em,.presets-hero h1 em,.result-card>p b,.exposure-summary div,.comparison-list strong) { color: #8c3030!important; }
 html[data-theme="night"] [data-slot="slider-thumb"] { background: #7d2727!important; border-color: #5a1a1a!important; box-shadow: none!important; }
+html[data-theme="night"] .step-number { background: #050000!important; }
+html[data-theme="night"] [data-slot="slider-track"] { background: #270b0b!important; }
+html[data-theme="night"] [data-slot="slider-range"] { background: #7d2727!important; }
+html[data-theme="night"] input[type="range"] { appearance: none; height: 4px; border-radius: 999px; background: #270b0b; }
+html[data-theme="night"] input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border: 1px solid #5a1a1a; border-radius: 50%; background: #7d2727; }
+html[data-theme="night"] input[type="range"]::-moz-range-track { height: 4px; border-radius: 999px; background: #270b0b; }
+html[data-theme="night"] input[type="range"]::-moz-range-progress { height: 4px; border-radius: 999px; background: #7d2727; }
+html[data-theme="night"] input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 1px solid #5a1a1a; border-radius: 50%; background: #7d2727; }
+html[data-theme="night"] input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(20%) sepia(38%) saturate(1770%) hue-rotate(319deg) brightness(74%); opacity: .7; }
 
 @media (max-width:1050px) { .data-stamp { display: none; }.site-header { justify-content: flex-start; gap: 30px; }.main-nav { margin-left: auto; }.header-tools { margin-left: 0; } }
 @media (max-width:900px) { .workspace { padding-top: 48px; }.intro,.planner-intro,.presets-hero { align-items: start; flex-direction: column; }.intro-copy { width: min(100%,600px); }.calculator-grid,.planner-grid { grid-template-columns: 1fr; }.results-column { position: static; }.method-section,.install-section { grid-template-columns: 1fr; gap: 34px; }.guide-grid,.faq-list { grid-template-columns: 1fr; }.preset-grid { grid-template-columns: 1fr 1fr; }footer { margin: 0 28px; flex-direction: column; } }
