@@ -54,6 +54,7 @@ const softwareApplicationJsonLd = {
     "Camera sensor and pixel-pitch database",
     "Milky Way and bright-star sky planner",
     "Target-aware astrophotography trip planner with nearby scouting areas",
+    "Searchable Messier, Caldwell, NGC, and IC deep-sky catalogue",
     "On-demand cloud, wind, precipitation, and dew forecast",
     "Field of view, pixel scale, star drift, and integration calculators",
     "Lightroom astrophotography preset downloads",

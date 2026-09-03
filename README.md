@@ -12,6 +12,7 @@ A modern, fully client-side rebuild of Frédéric Michaud's astrophotography cal
 - Current camera sensor profiles with custom-sensor support
 - Location-aware Milky Way, bright-star, Moon, and astronomical-darkness planner
 - Target-aware trip planner that ranks nights and finds nearby outdoor areas to scout
+- Searchable 13,000-object Messier, Caldwell, NGC, and IC catalogue
 - Optional on-demand cloud, precipitation, wind, visibility, and dew forecast
 - Field-of-view, pixel-scale, star-drift, and integration-time calculators
 - Six downloadable Lightroom / Camera Raw XMP presets for night-sky images
@@ -35,3 +36,7 @@ npm run build
 ```
 
 The static site is written to `out/`. Pushes to `main` deploy automatically to GitHub Pages.
+
+## Catalogue data
+
+Deep-sky target data is derived from [OpenNGC](https://github.com/mattiaverga/OpenNGC), created by Mattia Verga and contributors and licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Run `npm run update:targets` to rebuild the compact browser catalogue from the current OpenNGC source files.

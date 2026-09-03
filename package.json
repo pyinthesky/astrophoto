@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --ignore-pattern out --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern out --ignore-pattern .next",
+    "update:targets": "node scripts/update-target-catalog.mjs"
   },
   "dependencies": {
     "astronomy-engine": "^2.1.19",
