@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Aperture, Download, Map, MoonStar } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export type SiteSection = "exposure" | "planner" | "presets";
 
@@ -21,7 +22,10 @@ export function SiteHeader({ active }: { active: SiteSection }) {
           <Download size={15} /> Presets
         </Link>
       </nav>
-      <span className="data-stamp"><span className="live-dot" /> Camera data · Sep 2026</span>
+      <div className="header-tools">
+        <span className="data-stamp"><span className="live-dot" /> Camera data · Sep 2026</span>
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

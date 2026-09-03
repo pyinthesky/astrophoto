@@ -3,6 +3,7 @@ import "./globals.css";
 
 const basePath = process.env.GITHUB_ACTIONS ? "/astrophoto" : "";
 const siteUrl = "https://pyinthesky.github.io/astrophoto";
+const themeBootScript = `try{if(localStorage.getItem("astro-npf-theme")==="night")document.documentElement.dataset.theme="night"}catch{}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -62,7 +63,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeBootScript }} /></head>
       <body className="antialiased">
         <script
           type="application/ld+json"
