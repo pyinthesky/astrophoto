@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Aperture, Camera, CircleHelp, Compass, Crosshair, Info, MoonStar, ScanLine, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Aperture, Camera, CircleHelp, Compass, Crosshair, Info, ScanLine, Sparkles } from "lucide-react";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { SiteHeader } from "@/components/site-header";
 import { brands, cameras } from "@/lib/cameras";
 import { formatSeconds, fourCropRule, frameMap, fullNpf, pixelPitch, rule500, simplifiedNpf } from "@/lib/npf";
 
@@ -50,6 +51,16 @@ export default function Home() {
   const [altitude, setAltitude] = useState(35);
   const [portrait, setPortrait] = useState(false);
 
+  useEffect(() => {
+    const value = Number(new URLSearchParams(window.location.search).get("declination"));
+    if (!Number.isFinite(value) || value < -89 || value > 89) return;
+    const timer = window.setTimeout(() => {
+      setDeclination(value);
+      setMapMode(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const activeSensorWidth = customCamera ? sensorWidth : selectedCamera.sensorWidth;
   const activeSensorHeight = customCamera ? sensorHeight : selectedCamera.sensorHeight;
   const activeImageWidth = customCamera ? imageWidth : selectedCamera.imageWidth;
@@ -70,12 +81,7 @@ export default function Home() {
 
   return (
     <main>
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label="Astro NPF Calculator home">
-          <span className="brand-mark"><MoonStar size={19} /></span><span>Astro <b>NPF</b></span>
-        </a>
-        <span className="data-stamp"><span className="live-dot" /> Camera data · Sep 2026</span>
-      </header>
+      <SiteHeader active="exposure" />
 
       <section className="workspace" id="top">
         <div className="intro">
@@ -169,10 +175,28 @@ export default function Home() {
       </section>
 
       <section className="method-section">
-        <div className="method-copy"><p className="eyebrow">The recovered method</p><h2>Why NPF beats the 500 rule</h2>
+        <div className="method-copy"><p className="eyebrow">The recovered method</p><h2>Why the NPF rule beats the 500 rule</h2>
           <p>The old shortcut only knows focal length and crop factor. NPF also models diffraction, pixel pitch, and apparent sky motion, so a high-resolution sensor gets a shorter—and much more realistic—limit.</p></div>
         <div className="formula-card"><span>Full NPF formula</span><div className="formula"><i>t</i> = <span className="fraction"><b>k · (16.9<i>N</i> + 0.10<i>f</i> + 13.7<i>p</i>)</b><b><i>f</i> · cos(<i>δ</i>)</b></span></div>
           <div className="formula-key"><span><b>N</b> aperture</span><span><b>p</b> pixel pitch</span><span><b>f</b> focal length</span><span><b>δ</b> declination</span></div></div>
+      </section>
+
+      <section className="guide-section" aria-labelledby="npf-guide-title">
+        <div className="guide-heading">
+          <p className="eyebrow">Astrophotography exposure guide</p>
+          <h2 id="npf-guide-title">Get pinpoint stars without guessing</h2>
+          <p>The NPF rule estimates how long a fixed camera can expose before Earth’s rotation turns stars into visible streaks. Use the calculated setting as a conservative starting point, then inspect a magnified test frame.</p>
+        </div>
+        <div className="guide-grid">
+          <article><span>01</span><h3>Pixel pitch matters</h3><p>Higher-resolution sensors reveal movement sooner. The calculator derives pixel pitch from each camera’s sensor width and native image resolution.</p></article>
+          <article><span>02</span><h3>Direction matters</h3><p>Stars near the celestial equator move across the frame fastest. Declination and the frame map account for where the camera is pointed.</p></article>
+          <article><span>03</span><h3>The 500 rule is generous</h3><p>The traditional 500 rule ignores pixel density and aperture, so it commonly recommends exposures that look trailed at full resolution.</p></article>
+        </div>
+        <div className="faq-list">
+          <details><summary>Which sharpness setting should I use?</summary><p>Choose Pinpoint (k = 1) for high-resolution cameras, heavy cropping, or large prints. The looser settings intentionally accept progressively more star movement.</p></details>
+          <details><summary>What declination should I enter?</summary><p>Use the declination of the lowest-declination star in your composition. If you do not know it, 0° is the safest general value, or use the Sky Planner to select a target.</p></details>
+          <details><summary>Does image stabilization change the limit?</summary><p>No. Stabilization can reduce camera shake, but it cannot cancel Earth’s rotation relative to the stars. A tracking mount is required for longer pinpoint exposures.</p></details>
+        </div>
       </section>
 
       <footer><p>NPF formula by <a href="https://sahavre.fr/wp/regle-npf-rule/" target="_blank" rel="noreferrer">Frédéric Michaud, Société Astronomique du Havre</a>. Rebuilt from the <a href="https://web.archive.org/web/20200220123345/https://www.sahavre.fr/tutoriels/astrophoto/34-regle-npf-temps-de-pose-pour-eviter-le-file-d-etoiles" target="_blank" rel="noreferrer">archived calculator</a>.</p>
