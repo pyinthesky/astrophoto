@@ -134,6 +134,14 @@ html[data-theme="night"] .sky-map :where(text,.altitude-label,.below-note) { fil
 html[data-theme="night"] .sky-map .sky-target circle { fill: #8b2929!important; stroke: #5a1919!important; }
 html[data-theme="night"] .sky-map>circle { stroke: #401212!important; }
 html[data-theme="night"] .legend-band { background: #5a1919; }html[data-theme="night"] .legend-dot { background: #8b2929; box-shadow: none; }
+html[data-theme="night"] body :where(p,span,small,label,a) { color: #672323!important; }
+html[data-theme="night"] body :where(h1,h2,h3,h4,b,strong,em,output) { color: #9b3636!important; }
+html[data-theme="night"] body :where(button,input,[role="combobox"]) { color: #8c3030!important; }
+html[data-theme="night"] body :where(svg:not(.sky-map)) { color: #792525!important; }
+html[data-theme="night"] :where(.eyebrow,.brand b,.brand-mark,.step-number,.sensor-readout .pitch b,.dial-value strong,.dial-value span,.comparison-list .featured strong,.card-title-row>span,.direction-readout strong,.night-window-card strong,.target-card>a,.preset-card>a,.download-primary,.theme-toggle) { color: #9c3434!important; }
+html[data-theme="night"] :where(.main-nav a.active,.mode-tabs button.active,.location-button,.date-input-row button,.download-primary,.target-buttons button.active,.target-buttons button:hover) { background: #0a0101!important; border-color: #4a1515!important; box-shadow: none!important; }
+html[data-theme="night"] :where(.intro h1 em,.planner-intro h1 em,.presets-hero h1 em,.result-card>p b,.exposure-summary div,.comparison-list strong) { color: #8c3030!important; }
+html[data-theme="night"] [data-slot="slider-thumb"] { background: #7d2727!important; border-color: #5a1a1a!important; box-shadow: none!important; }
 
 @media (max-width:1050px) { .data-stamp { display: none; }.site-header { justify-content: flex-start; gap: 30px; }.main-nav { margin-left: auto; }.header-tools { margin-left: 0; } }
 @media (max-width:900px) { .workspace { padding-top: 48px; }.intro,.planner-intro,.presets-hero { align-items: start; flex-direction: column; }.intro-copy { width: min(100%,600px); }.calculator-grid,.planner-grid { grid-template-columns: 1fr; }.results-column { position: static; }.method-section,.install-section { grid-template-columns: 1fr; gap: 34px; }.guide-grid,.faq-list { grid-template-columns: 1fr; }.preset-grid { grid-template-columns: 1fr 1fr; }footer { margin: 0 28px; flex-direction: column; } }
