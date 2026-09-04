@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Aperture, Calculator, Camera, Clock3, Crosshair, Grid3X3, Info, Sparkles, Telescope } from "lucide-react";
+import { Aperture, ArrowRight, Calculator, Camera, Clock3, Crosshair, Grid3X3, Info, Sparkles, Telescope } from "lucide-react";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -122,6 +123,7 @@ export function AdvancedCalculators() {
               <span><small>Diagonal</small><strong>{results.fov.diagonal.toFixed(2)}°</strong></span>
             </div>
             <p className="tool-note"><Info size={14} /> Rectilinear lens geometry at infinity; distortion and focus breathing can change the real frame.</p>
+            <Link className="tool-deep-link" href="/mosaic-planner/">Build a mosaic from this setup <ArrowRight size={14} /></Link>
           </article>
 
           <article className="tool-card">

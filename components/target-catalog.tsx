@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowRight, BookOpen, Database, Search, Sparkles, Telescope } from "lucide-react";
+import { ArrowRight, BookOpen, Database, Grid3X3, Search, Sparkles, Telescope } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { formatDeclination, formatRightAscension, loadTargetCatalog, normalizeTargetSearch, targetFamily, targetSearchText, targetTypeLabels, type TargetCatalogPayload, type TargetTuple } from "@/lib/targets";
 
@@ -34,6 +34,21 @@ function tripPlannerHref(target: TargetTuple) {
     type: target[1],
     constellation: target[4],
     common: target[9].split(",")[0],
+  }).toString()}`;
+}
+
+function displayName(target: TargetTuple) {
+  const common = target[9].split(",")[0];
+  return common ? `${common} · ${target[0]}` : target[0];
+}
+
+function mosaicPlannerHref(target: TargetTuple) {
+  return `/mosaic-planner/?${new URLSearchParams({
+    target: displayName(target),
+    width: String(target[5] ?? ""),
+    height: String(target[6] ?? target[5] ?? ""),
+    ra: String(target[2]),
+    dec: String(target[3]),
   }).toString()}`;
 }
 
@@ -117,7 +132,10 @@ export function TargetCatalog() {
               <div><dt>Size</dt><dd>{dimensions(target)}</dd></div>
               <div><dt>Magnitude</dt><dd>{target[7] === null ? "Not listed" : target[7].toFixed(2)}</dd></div>
             </dl>
-            <Link className="catalog-plan-link" href={tripPlannerHref(target)}>Plan this target <ArrowRight size={14} /></Link>
+            <div className="catalog-card-actions">
+              <Link className="catalog-plan-link" href={tripPlannerHref(target)}>Plan trip <ArrowRight size={14} /></Link>
+              {target[5] !== null && <Link className="catalog-plan-link" href={mosaicPlannerHref(target)}>Frame mosaic <Grid3X3 size={14} /></Link>}
+            </div>
           </article>)}
         </div>
       </section>

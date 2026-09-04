@@ -54,5 +54,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.9,
     },
+    {
+      url: `${siteUrl}/mosaic-planner/`,
+      lastModified: new Date("2026-09-04"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
   ];
 }

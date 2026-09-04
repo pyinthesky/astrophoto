@@ -16,6 +16,7 @@ A modern, fully client-side rebuild of Frédéric Michaud's astrophotography cal
 - Searchable 13,000-object Messier, Caldwell, NGC, and IC catalogue
 - Optional on-demand cloud, precipitation, wind, visibility, and dew forecast
 - Field-of-view, pixel-scale, star-drift, exposure-value, integration-time, and pixel-étendue / sky-limited SNR comparison calculators
+- Target-aware mosaic planner with overlap, framing margin, sensor orientation, capture-time estimates, stitched resolution, and approximate J2000 panel centers
 - Six downloadable Lightroom / Camera Raw XMP presets for night-sky images
 - Persistent OLED night-vision palette with pure black surfaces and dim red controls
 - Indexable static routes, canonical metadata, structured data, sitemap, and social share card
