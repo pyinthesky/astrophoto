@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
+  verification: {
+    google: "B07d6KKvrn_wW2IZnXfUsBmKFbb5SV7gkOgOT2AOETM",
+  },
   openGraph: {
     type: "website",
     url: `${siteUrl}/`,
