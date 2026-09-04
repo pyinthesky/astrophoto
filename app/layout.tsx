@@ -58,6 +58,7 @@ const softwareApplicationJsonLd = {
     "Searchable Messier, Caldwell, NGC, and IC deep-sky catalogue",
     "On-demand cloud, wind, precipitation, and dew forecast",
     "Field of view, pixel scale, star drift, and integration calculators",
+    "Exposure value and equivalent exposure calculator",
     "Pixel etendue and sky-limited SNR setup comparator",
     "Lightroom astrophotography preset downloads",
   ],

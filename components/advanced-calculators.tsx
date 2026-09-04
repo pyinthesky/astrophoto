@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { SiteHeader } from "@/components/site-header";
 import { PixelEtendueComparator } from "@/components/pixel-etendue-comparator";
+import { ExposureValueCalculator } from "@/components/exposure-value-calculator";
 import { brands, cameras } from "@/lib/cameras";
 import { readCameraPreference, saveCameraPreference } from "@/lib/camera-preference";
 import { fieldOfView, integrationPlan, pixelScale, samplingAssessment, starDriftPixels } from "@/lib/calculators";
@@ -85,7 +86,7 @@ export function AdvancedCalculators() {
             <p className="eyebrow"><Sparkles size={14} /> Advanced astrophotography calculators</p>
             <h1>Plan the frame.<br /><em>Understand the pixels.</em></h1>
           </div>
-          <p>Five practical tools cover framing, image sampling, visible star drift, integration time, and side-by-side optical setup performance.</p>
+          <p>Six practical tools cover framing, image sampling, star drift, exposure equivalence, integration time, and side-by-side optical performance.</p>
         </div>
 
         <section className="setup-card" aria-label="Shared optical setup">
@@ -161,6 +162,8 @@ export function AdvancedCalculators() {
             </div>
             <p className="tool-note"><Info size={14} /> Clock time excludes setup, dithering pauses, meridian flips, and changing twilight.</p>
           </article>
+
+          <ExposureValueCalculator />
         </div>
 
         <PixelEtendueComparator

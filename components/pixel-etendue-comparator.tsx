@@ -128,7 +128,7 @@ export function PixelEtendueComparator({ sharedPixelPitch, sharedFocalLength, sh
   return (
     <section className="etendue-card" aria-labelledby="etendue-title">
       <div className="etendue-heading">
-        <div className="tool-title"><Calculator size={21} /><div><span>05 · Setup comparison</span><h2 id="etendue-title">Pixel Étendue &amp; SNR</h2></div></div>
+        <div className="tool-title"><Calculator size={21} /><div><span>06 · Setup comparison</span><h2 id="etendue-title">Pixel Étendue &amp; SNR</h2></div></div>
         <div className="etendue-actions">
           <button type="button" onClick={loadSharedScale}>Use {sharedCameraName} scale in A</button>
           <button type="button" onClick={swap}><ArrowLeftRight size={14} /> Swap A / B</button>
