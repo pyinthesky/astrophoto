@@ -1,20 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { BookOpen, Database, Search, Sparkles, Telescope } from "lucide-react";
+import { ArrowRight, BookOpen, Database, Search, Sparkles, Telescope } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
-import { formatDeclination, formatRightAscension, targetFamily, targetTypeLabels, type TargetCatalogPayload, type TargetTuple } from "@/lib/targets";
+import { formatDeclination, formatRightAscension, loadTargetCatalog, normalizeTargetSearch, targetFamily, targetSearchText, targetTypeLabels, type TargetCatalogPayload, type TargetTuple } from "@/lib/targets";
 
 const suggestions = ["M 31", "Orion Nebula", "Pleiades", "Caldwell 14", "NGC 7000"];
 const featured = ["m31", "m42", "m45", "m8", "m13", "m27", "m51", "m57", "m81", "m82", "ngc7000", "ic434"];
-
-function normalize(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function searchText(target: TargetTuple) {
-  return normalize(`${target[0]} ${target[8]} ${target[9]}`);
-}
 
 function inCatalog(target: TargetTuple, catalog: string) {
   if (catalog === "all") return true;
@@ -32,6 +25,18 @@ function aliases(target: TargetTuple) {
   return target[8].split("|").filter(Boolean);
 }
 
+function tripPlannerHref(target: TargetTuple) {
+  return `/trip-planner/?${new URLSearchParams({
+    target: target[0],
+    ra: String(target[2]),
+    dec: String(target[3]),
+    magnitude: target[7] === null ? "" : String(target[7]),
+    type: target[1],
+    constellation: target[4],
+    common: target[9].split(",")[0],
+  }).toString()}`;
+}
+
 export function TargetCatalog() {
   const [payload, setPayload] = useState<TargetCatalogPayload | null>(null);
   const [error, setError] = useState("");
@@ -41,37 +46,28 @@ export function TargetCatalog() {
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
-    fetch("../data/targets/index.json")
-      .then((response) => {
-        if (!response.ok) throw new Error("Catalogue unavailable");
-        return response.json();
-      })
-      .then(async (index: Omit<TargetCatalogPayload, "objects">) => {
-        const responses = await Promise.all(index.files.map((file) => fetch(`../data/targets/${file}`)));
-        if (responses.some((response) => !response.ok)) throw new Error("Catalogue shard unavailable");
-        const shards = await Promise.all(responses.map((response) => response.json() as Promise<TargetTuple[]>));
-        setPayload({ ...index, objects: shards.flat() });
-      })
+    loadTargetCatalog()
+      .then(setPayload)
       .catch(() => setError("The target catalogue could not be loaded. Refresh the page and try again."));
   }, []);
 
   const filtered = useMemo(() => {
     if (!payload) return [];
-    const needle = normalize(deferredQuery);
+    const needle = normalizeTargetSearch(deferredQuery);
     return payload.objects
       .filter((target) => inCatalog(target, catalog))
       .filter((target) => family === "all" || targetFamily(target[1]) === family)
-      .filter((target) => !needle || searchText(target).includes(needle))
+      .filter((target) => !needle || targetSearchText(target).includes(needle))
       .sort((a, b) => {
         if (needle) {
-          const aName = normalize(a[0]);
-          const bName = normalize(b[0]);
+          const aName = normalizeTargetSearch(a[0]);
+          const bName = normalizeTargetSearch(b[0]);
           const aRank = aName === needle ? 0 : aName.startsWith(needle) ? 1 : 2;
           const bRank = bName === needle ? 0 : bName.startsWith(needle) ? 1 : 2;
           return aRank - bRank;
         }
-        const aIndex = featured.findIndex((name) => searchText(a).includes(name));
-        const bIndex = featured.findIndex((name) => searchText(b).includes(name));
+        const aIndex = featured.findIndex((name) => targetSearchText(a).includes(name));
+        const bIndex = featured.findIndex((name) => targetSearchText(b).includes(name));
         return (aIndex < 0 ? 999 : aIndex) - (bIndex < 0 ? 999 : bIndex);
       });
   }, [payload, deferredQuery, catalog, family]);
@@ -121,6 +117,7 @@ export function TargetCatalog() {
               <div><dt>Size</dt><dd>{dimensions(target)}</dd></div>
               <div><dt>Magnitude</dt><dd>{target[7] === null ? "Not listed" : target[7].toFixed(2)}</dd></div>
             </dl>
+            <Link className="catalog-plan-link" href={tripPlannerHref(target)}>Plan this target <ArrowRight size={14} /></Link>
           </article>)}
         </div>
       </section>

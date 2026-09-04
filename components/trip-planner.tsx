@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, ChevronRight, Compass, LocateFixed, MapPinned, Moon, Route, ShieldCheck, Sparkles, Telescope } from "lucide-react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Check, ChevronRight, Compass, LocateFixed, MapPinned, Moon, Plus, Route, Search, ShieldCheck, Sparkles, Telescope, X } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
-import { findScoutingPlaces, rankNights, tripTargets, type NightPlan, type ScoutingPlace } from "@/lib/trip";
+import { catalogTargetToTripTarget, findScoutingPlaces, rankNights, tripTargets, type NightPlan, type ScoutingPlace, type TripTarget } from "@/lib/trip";
+import { loadTargetCatalog, normalizeTargetSearch, targetSearchText, targetTypeLabels, type TargetTuple } from "@/lib/targets";
 
 function dateInput(date: Date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -46,10 +47,17 @@ export function TripPlanner() {
   const [startDate, setStartDate] = useState(dateInput(today));
   const [endDate, setEndDate] = useState(dateInput(twoWeeks));
   const [selectedIds, setSelectedIds] = useState(["milky-way-core"]);
+  const [catalogTargets, setCatalogTargets] = useState<TargetTuple[]>([]);
+  const [customTargets, setCustomTargets] = useState<TripTarget[]>([]);
+  const [targetQuery, setTargetQuery] = useState("");
+  const [targetMessage, setTargetMessage] = useState("");
+  const [catalogStatus, setCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [plans, setPlans] = useState<NightPlan[]>([]);
   const [places, setPlaces] = useState<ScoutingPlace[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [message, setMessage] = useState("");
+  const deferredTargetQuery = useDeferredValue(targetQuery);
+  const catalogueRequestStarted = useRef(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("astro-npf-trip-location");
@@ -67,10 +75,97 @@ export function TripPlanner() {
     } catch { /* Ignore stale browser data. */ }
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get("target")?.slice(0, 120);
+    const rawRa = params.get("ra");
+    const rawDec = params.get("dec");
+    if (!name || rawRa === null || rawDec === null) return;
+    const ra = Number(rawRa);
+    const dec = Number(rawDec);
+    if (!Number.isFinite(ra) || ra < 0 || ra > 24 || !Number.isFinite(dec) || dec < -90 || dec > 90) return;
+    const rawMagnitude = params.get("magnitude");
+    const magnitude = rawMagnitude && Number.isFinite(Number(rawMagnitude)) ? Number(rawMagnitude) : null;
+    const tuple: TargetTuple = [
+      name,
+      params.get("type")?.slice(0, 12) || "Other",
+      ra,
+      dec,
+      params.get("constellation")?.slice(0, 8) || "—",
+      null,
+      null,
+      magnitude,
+      "",
+      params.get("common")?.slice(0, 120) || "",
+    ];
+    const frame = window.requestAnimationFrame(() => {
+      setSelectedIds([]);
+      setCustomTargets([catalogTargetToTripTarget(tuple)]);
+      setTargetMessage(`${name} added from the target catalogue.`);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  const matchingTargets = useMemo(() => {
+    const needle = normalizeTargetSearch(deferredTargetQuery);
+    if (needle.length < 2) return [];
+    return catalogTargets
+      .filter((target) => targetSearchText(target).includes(needle))
+      .sort((a, b) => {
+        const aName = normalizeTargetSearch(a[0]);
+        const bName = normalizeTargetSearch(b[0]);
+        const aRank = aName === needle ? 0 : aName.startsWith(needle) ? 1 : 2;
+        const bRank = bName === needle ? 0 : bName.startsWith(needle) ? 1 : 2;
+        return aRank - bRank;
+      })
+      .slice(0, 6);
+  }, [catalogTargets, deferredTargetQuery]);
+
+  async function loadCatalogue() {
+    if (catalogStatus !== "idle" || catalogueRequestStarted.current) return;
+    catalogueRequestStarted.current = true;
+    setCatalogStatus("loading");
+    try {
+      const payload = await loadTargetCatalog();
+      setCatalogTargets(payload.objects);
+      setCatalogStatus("ready");
+    } catch {
+      setCatalogStatus("error");
+      setTargetMessage("The target catalogue could not be loaded. Refresh and try again.");
+    }
+  }
+
   function selectTarget(id: string) {
-    setSelectedIds((current) => current.includes(id)
-      ? current.length === 1 ? current : current.filter((value) => value !== id)
-      : [...current, id]);
+    if (selectedIds.includes(id)) {
+      if (selectedIds.length + customTargets.length === 1) return;
+      setSelectedIds((current) => current.filter((value) => value !== id));
+      return;
+    }
+    if (selectedIds.length + customTargets.length >= 6) {
+      setTargetMessage("Choose up to six targets per trip search.");
+      return;
+    }
+    setSelectedIds((current) => [...current, id]);
+  }
+
+  function addCatalogueTarget(target: TargetTuple) {
+    const converted = catalogTargetToTripTarget(target);
+    if (customTargets.some((item) => item.id === converted.id)) {
+      setTargetMessage(`${converted.shortName} is already selected.`);
+      return;
+    }
+    if (selectedIds.length + customTargets.length >= 6) {
+      setTargetMessage("Choose up to six targets per trip search.");
+      return;
+    }
+    setCustomTargets((current) => [...current, converted]);
+    setTargetQuery("");
+    setTargetMessage(`${converted.shortName} added.`);
+  }
+
+  function removeCatalogueTarget(id: string) {
+    if (selectedIds.length + customTargets.length === 1) return;
+    setCustomTargets((current) => current.filter((target) => target.id !== id));
   }
 
   function requestLocation() {
@@ -94,7 +189,7 @@ export function TripPlanner() {
   }
 
   async function buildTrip() {
-    const targets = tripTargets.filter((target) => selectedIds.includes(target.id));
+    const targets = [...tripTargets.filter((target) => selectedIds.includes(target.id)), ...customTargets];
     const start = mode === "flexible" ? new Date() : new Date(`${startDate}T12:00`);
     const end = mode === "flexible"
       ? new Date(start.getTime() + 365 * 86_400_000)
@@ -148,6 +243,13 @@ export function TripPlanner() {
               <span className="target-check">{selectedIds.includes(target.id) && <Check size={13} />}</span>
               <span><b>{target.shortName}</b><small>{target.description}</small><em>{target.season}</em></span>
             </button>)}
+          </div>
+          <div className="trip-catalog-picker">
+            <div className="trip-catalog-heading"><div><Search size={16} /><span><b>Search the full catalogue</b><small>Add any Messier, Caldwell, NGC, or IC object</small></span></div><em>{selectedIds.length + customTargets.length}/6 selected</em></div>
+            {customTargets.length > 0 && <div className="trip-custom-targets">{customTargets.map((target) => <span key={target.id}><span><b>{target.shortName}</b><small>{target.description}</small></span><button aria-label={`Remove ${target.shortName}`} onClick={() => removeCatalogueTarget(target.id)} disabled={selectedIds.length + customTargets.length === 1}><X size={13} /></button></span>)}</div>}
+            <label className="trip-target-search"><Search size={15} /><span className="sr-only">Search catalogue targets</span><input value={targetQuery} onFocus={loadCatalogue} onChange={(event) => { setTargetQuery(event.target.value); loadCatalogue(); }} placeholder="Search M31, Horsehead Nebula, NGC 7000…" autoComplete="off" />{catalogStatus === "loading" && <small>Loading…</small>}</label>
+            {targetQuery.length >= 2 && catalogStatus === "ready" && <div className="trip-target-matches">{matchingTargets.length > 0 ? matchingTargets.map((target) => <button key={`${target[0]}-${target[2]}-${target[3]}`} onClick={() => addCatalogueTarget(target)}><span><b>{target[9].split(",")[0] || target[0]}</b><small>{target[0]} · {targetTypeLabels[target[1]] ?? target[1]} · {target[4]}</small></span><Plus size={15} /></button>) : <p>No matching catalogue objects.</p>}</div>}
+            {targetMessage && <p className="trip-target-message">{targetMessage}</p>}
           </div>
         </div>
 

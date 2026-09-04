@@ -1,6 +1,7 @@
 import { Body, Equator, Horizon, Illumination, Observer } from "astronomy-engine";
 import { darkSkyPlaces } from "@/lib/dark-sky-places";
 import { milkyWayCore, targetPosition, type EquatorialTarget } from "@/lib/sky";
+import { formatDeclination, formatRightAscension, targetTypeLabels, type TargetTuple } from "@/lib/targets";
 
 export type TripTarget = EquatorialTarget & {
   shortName: string;
@@ -48,6 +49,22 @@ export const tripTargets: TripTarget[] = [
   { id: "ngc3372", name: "NGC 3372 · Carina Nebula", shortName: "Carina Nebula", ra: 10.7506, dec: -59.6999, magnitude: 1, kind: "star", description: "Huge southern emission nebula", season: "Southern summer and autumn" },
   { id: "lmc", name: "Large Magellanic Cloud", shortName: "LMC", ra: 5.3929, dec: -69.7561, magnitude: 0.9, kind: "star", description: "Companion galaxy of the Milky Way", season: "Southern spring and summer" },
 ];
+
+export function catalogTargetToTripTarget(target: TargetTuple): TripTarget {
+  const commonName = target[9].split(",")[0];
+  const shortName = commonName || target[0];
+  return {
+    id: `catalog-${target[0].toLowerCase().replace(/[^a-z0-9]/g, "-")}-${target[2]}-${target[3]}`,
+    name: commonName ? `${target[0]} · ${commonName}` : target[0],
+    shortName,
+    ra: target[2],
+    dec: target[3],
+    magnitude: target[7] ?? 99,
+    kind: "star",
+    description: `${targetTypeLabels[target[1]] ?? target[1]} · ${target[4]}`,
+    season: `${formatRightAscension(target[2])} · ${formatDeclination(target[3])}`,
+  };
+}
 
 const radians = (degrees: number) => degrees * Math.PI / 180;
 const degrees = (value: number) => value * 180 / Math.PI;

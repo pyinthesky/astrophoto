@@ -20,6 +20,25 @@ export type TargetCatalogPayload = {
   objects: TargetTuple[];
 };
 
+export function normalizeTargetSearch(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function targetSearchText(target: TargetTuple) {
+  return normalizeTargetSearch(`${target[0]} ${target[8]} ${target[9]}`);
+}
+
+export async function loadTargetCatalog() {
+  const base = new URL("../data/targets/", window.location.href);
+  const indexResponse = await fetch(new URL("index.json", base));
+  if (!indexResponse.ok) throw new Error("Catalogue unavailable");
+  const index = await indexResponse.json() as Omit<TargetCatalogPayload, "objects">;
+  const responses = await Promise.all(index.files.map((file) => fetch(new URL(file, base))));
+  if (responses.some((response) => !response.ok)) throw new Error("Catalogue shard unavailable");
+  const shards = await Promise.all(responses.map((response) => response.json() as Promise<TargetTuple[]>));
+  return { ...index, objects: shards.flat() };
+}
+
 export const targetTypeLabels: Record<string, string> = {
   "*": "Star",
   "**": "Double star",
