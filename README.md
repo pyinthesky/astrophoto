@@ -12,6 +12,7 @@ A modern, fully client-side rebuild of Frédéric Michaud's astrophotography cal
 - Current camera sensor profiles with custom-sensor support
 - Location-aware Milky Way, bright-star, Moon, and astronomical-darkness planner
 - Target-aware trip planner that recommends catalogue objects for a location and date, accepts any catalogue object, ranks nights, and finds nearby outdoor areas to scout
+- Monthly Sun and Moon calendar with phases, rise/set times, twilight, astronomical darkness, and moonless observing hours
 - Searchable 13,000-object Messier, Caldwell, NGC, and IC catalogue
 - Optional on-demand cloud, precipitation, wind, visibility, and dew forecast
 - Field-of-view, pixel-scale, star-drift, and integration-time calculators

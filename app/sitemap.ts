@@ -20,7 +20,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${siteUrl}/trip-planner/`,
-      lastModified: new Date("2026-09-03"),
+      lastModified: new Date("2026-09-04"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/sun-moon-calendar/`,
+      lastModified: new Date("2026-09-04"),
       changeFrequency: "monthly",
       priority: 0.9,
     },
