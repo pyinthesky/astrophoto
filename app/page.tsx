@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { SiteHeader } from "@/components/site-header";
 import { brands, cameras } from "@/lib/cameras";
 import { readCameraPreference, saveCameraPreference } from "@/lib/camera-preference";
+import { focalLengthToSlider, sliderToFocalLength } from "@/lib/focal-slider";
 import { formatSeconds, fourCropRule, frameMap, fullNpf, pixelPitch, rule500, simplifiedNpf } from "@/lib/npf";
 
 const shutterStops = [30, 25, 20, 15, 13, 10, 8, 6, 5, 4, 3.2, 2.5, 2, 1.6, 1.3, 1, 0.8, 0.6, 0.5, 0.4, 0.3, 0.25];
@@ -135,8 +136,8 @@ export default function Home() {
               <NumberField id="focal-length" label="Focal length" value={focalLength} onChange={setFocalLength} suffix="mm" min={1} max={800} />
               <NumberField id="aperture" label="Aperture" value={apertureValue} onChange={setApertureValue} suffix="f/" min={0.7} max={32} step={0.1} />
             </div>
-            <div className="slider-block"><Slider value={[focalLength]} onValueChange={([value]) => setFocalLength(value)} min={8} max={100} step={1} aria-label="Focal length" />
-              <div className="slider-scale"><span>8 mm</span><span>24</span><span>50</span><span>100 mm</span></div></div>
+            <div className="slider-block"><Slider value={[focalLengthToSlider(focalLength)]} onValueChange={([value]) => setFocalLength(sliderToFocalLength(value))} min={0} max={100} step={0.5} aria-label="Focal length" aria-valuetext={`${focalLength} mm`} />
+              <div className="slider-scale"><span>8 mm</span><span>25</span><span>75</span><span>250 mm</span></div></div>
             <div className="field accuracy-field"><span className="field-label">Star sharpness</span>
               <Select value={String(accuracy)} onValueChange={(value) => setAccuracy(Number(value))}>
                 <SelectTrigger className="wide-trigger" aria-label="Star sharpness"><Crosshair size={17} /><SelectValue /></SelectTrigger>
