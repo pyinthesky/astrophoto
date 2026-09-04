@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Aperture, Calculator, Camera, Clock3, Crosshair, Grid3X3, Info, Sparkles, Telescope } from "lucide-react";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -8,6 +8,7 @@ import {
 import { SiteHeader } from "@/components/site-header";
 import { PixelEtendueComparator } from "@/components/pixel-etendue-comparator";
 import { brands, cameras } from "@/lib/cameras";
+import { readCameraPreference, saveCameraPreference } from "@/lib/camera-preference";
 import { fieldOfView, integrationPlan, pixelScale, samplingAssessment, starDriftPixels } from "@/lib/calculators";
 import { pixelPitch } from "@/lib/npf";
 
@@ -45,6 +46,13 @@ export function AdvancedCalculators() {
   const [rejectPercent, setRejectPercent] = useState(10);
   const [overhead, setOverhead] = useState(2);
 
+  useEffect(() => {
+    const savedCamera = readCameraPreference(cameras.map((item) => item.id));
+    if (!savedCamera) return;
+    const timer = window.setTimeout(() => setCameraId(savedCamera), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const camera = cameras.find((item) => item.id === cameraId) ?? cameras[0];
   const pitch = pixelPitch(camera.sensorWidth, camera.imageWidth);
   const diagonal = Math.hypot(camera.sensorWidth, camera.sensorHeight);
@@ -63,6 +71,11 @@ export function AdvancedCalculators() {
     };
   }, [camera, diagonal, pitch, focalLength, seeing, testExposure, declination, subExposure, frames, rejectPercent, overhead]);
 
+  const handleCamera = (id: string) => {
+    setCameraId(id);
+    saveCameraPreference(id);
+  };
+
   return (
     <main>
       <SiteHeader active="calculators" />
@@ -80,7 +93,7 @@ export function AdvancedCalculators() {
           <div className="setup-fields">
             <div className="field">
               <span className="field-label">Camera body</span>
-              <Select value={cameraId} onValueChange={setCameraId}>
+              <Select value={cameraId} onValueChange={handleCamera}>
                 <SelectTrigger className="camera-trigger" aria-label="Camera body"><Camera size={17} /><SelectValue /></SelectTrigger>
                 <SelectContent position="popper" className="camera-menu">
                   {brands.map((brand) => <SelectGroup key={brand}><SelectLabel>{brand}</SelectLabel>

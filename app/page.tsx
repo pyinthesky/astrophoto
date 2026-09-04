@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { SiteHeader } from "@/components/site-header";
 import { brands, cameras } from "@/lib/cameras";
+import { readCameraPreference, saveCameraPreference } from "@/lib/camera-preference";
 import { formatSeconds, fourCropRule, frameMap, fullNpf, pixelPitch, rule500, simplifiedNpf } from "@/lib/npf";
 
 const shutterStops = [30, 25, 20, 15, 13, 10, 8, 6, 5, 4, 3.2, 2.5, 2, 1.6, 1.3, 1, 0.8, 0.6, 0.5, 0.4, 0.3, 0.25];
@@ -52,13 +53,19 @@ export default function Home() {
   const [portrait, setPortrait] = useState(false);
 
   useEffect(() => {
+    const savedCamera = readCameraPreference(cameras.map((camera) => camera.id));
+    const cameraTimer = savedCamera ? window.setTimeout(() => setCameraId(savedCamera), 0) : undefined;
     const value = Number(new URLSearchParams(window.location.search).get("declination"));
-    if (!Number.isFinite(value) || value < -89 || value > 89) return;
-    const timer = window.setTimeout(() => {
-      setDeclination(value);
-      setMapMode(false);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    const declinationTimer = Number.isFinite(value) && value >= -89 && value <= 89
+      ? window.setTimeout(() => {
+        setDeclination(value);
+        setMapMode(false);
+      }, 0)
+      : undefined;
+    return () => {
+      if (cameraTimer) window.clearTimeout(cameraTimer);
+      if (declinationTimer) window.clearTimeout(declinationTimer);
+    };
   }, []);
 
   const activeSensorWidth = customCamera ? sensorWidth : selectedCamera.sensorWidth;
@@ -77,7 +84,11 @@ export default function Home() {
   const legacyResult = rule500(focalLength, activeSensorWidth);
   const cropResult = fourCropRule(focalLength, activeSensorWidth);
 
-  const handleCamera = (id: string) => { setCameraId(id); setCustomCamera(false); };
+  const handleCamera = (id: string) => {
+    setCameraId(id);
+    setCustomCamera(false);
+    saveCameraPreference(id);
+  };
 
   return (
     <main>
