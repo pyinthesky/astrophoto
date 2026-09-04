@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Check, ChevronRight, Compass, LocateFixed, MapPinned, Moon, Plus, Route, Search, ShieldCheck, Sparkles, Telescope, X } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, Clock3, Compass, LocateFixed, MapPinned, Maximize2, Moon, Plus, Radar, Route, Search, ShieldCheck, Sparkles, Telescope, X } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
-import { catalogTargetToTripTarget, findScoutingPlaces, rankNights, tripTargets, type NightPlan, type ScoutingPlace, type TripTarget } from "@/lib/trip";
+import { catalogTargetToTripTarget, findScoutingPlaces, rankNights, recommendCatalogueTargets, tripTargets, type NightPlan, type RecommendationFamily, type RecommendationScale, type ScoutingPlace, type TargetRecommendation, type TripTarget } from "@/lib/trip";
 import { loadTargetCatalog, normalizeTargetSearch, targetSearchText, targetTypeLabels, type TargetTuple } from "@/lib/targets";
 
 function dateInput(date: Date) {
@@ -22,6 +22,22 @@ function formatTime(date: Date | null) {
 
 function miles(kilometers: number) {
   return Math.round(kilometers * 0.621371);
+}
+
+function recommendationName(target: TargetTuple) {
+  const commonName = target[9].split(",")[0];
+  const familiarAlias = target[8].split("|").find((alias) => /^M \d+$/.test(alias) || alias.startsWith("Caldwell "));
+  return commonName || familiarAlias || target[0];
+}
+
+function recommendationCode(target: TargetTuple) {
+  const familiarAlias = target[8].split("|").find((alias) => /^M \d+$/.test(alias) || alias.startsWith("Caldwell "));
+  return familiarAlias ? `${familiarAlias} · ${target[0]}` : target[0];
+}
+
+function formatAngularSize(size: number | null) {
+  if (size === null) return "Not listed";
+  return size >= 60 ? `${(size / 60).toFixed(size >= 120 ? 1 : 2)}°` : `${size.toFixed(size >= 10 ? 0 : 1)}′`;
 }
 
 function plannerHref(place: ScoutingPlace, plan: NightPlan) {
@@ -52,12 +68,18 @@ export function TripPlanner() {
   const [targetQuery, setTargetQuery] = useState("");
   const [targetMessage, setTargetMessage] = useState("");
   const [catalogStatus, setCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [recommendationDate, setRecommendationDate] = useState(dateInput(today));
+  const [recommendationFamily, setRecommendationFamily] = useState<RecommendationFamily>("all");
+  const [recommendationScale, setRecommendationScale] = useState<RecommendationScale>("all");
+  const [recommendations, setRecommendations] = useState<TargetRecommendation[]>([]);
+  const [recommendationStatus, setRecommendationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [recommendationMessage, setRecommendationMessage] = useState("");
   const [plans, setPlans] = useState<NightPlan[]>([]);
   const [places, setPlaces] = useState<ScoutingPlace[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [message, setMessage] = useState("");
   const deferredTargetQuery = useDeferredValue(targetQuery);
-  const catalogueRequestStarted = useRef(false);
+  const catalogueRequest = useRef<Promise<TargetTuple[]> | null>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("astro-npf-trip-location");
@@ -121,17 +143,56 @@ export function TripPlanner() {
       .slice(0, 6);
   }, [catalogTargets, deferredTargetQuery]);
 
-  async function loadCatalogue() {
-    if (catalogStatus !== "idle" || catalogueRequestStarted.current) return;
-    catalogueRequestStarted.current = true;
-    setCatalogStatus("loading");
+  async function ensureCatalogue() {
+    if (catalogTargets.length > 0) return catalogTargets;
+    if (!catalogueRequest.current) {
+      setCatalogStatus("loading");
+      catalogueRequest.current = loadTargetCatalog().then((payload) => payload.objects);
+    }
     try {
-      const payload = await loadTargetCatalog();
-      setCatalogTargets(payload.objects);
+      const objects = await catalogueRequest.current;
+      setCatalogTargets(objects);
       setCatalogStatus("ready");
+      return objects;
     } catch {
+      catalogueRequest.current = null;
       setCatalogStatus("error");
       setTargetMessage("The target catalogue could not be loaded. Refresh and try again.");
+      throw new Error("Catalogue unavailable");
+    }
+  }
+
+  function loadCatalogue() {
+    void ensureCatalogue().catch(() => undefined);
+  }
+
+  function clearRecommendations() {
+    setRecommendations([]);
+    setRecommendationStatus("idle");
+    setRecommendationMessage("");
+  }
+
+  async function findRecommendations() {
+    const date = new Date(`${recommendationDate}T12:00`);
+    if (!Number.isFinite(date.getTime()) || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      setRecommendationStatus("error");
+      setRecommendationMessage("Enter a valid date and location first.");
+      return;
+    }
+    setRecommendationStatus("loading");
+    setRecommendationMessage("");
+    try {
+      const catalogue = await ensureCatalogue();
+      const results = recommendCatalogueTargets(catalogue, date, latitude, longitude, recommendationFamily, recommendationScale);
+      setRecommendations(results);
+      setRecommendationStatus("ready");
+      setRecommendationMessage(results.length === 0
+        ? "No suitable objects were found during astronomical darkness. Try another date, target family, or framing scale."
+        : `${results[0].darkHours.toFixed(1)} hours of astronomical darkness · Moon ${Math.round(results[0].moonIllumination)}% illuminated`);
+    } catch {
+      setRecommendations([]);
+      setRecommendationStatus("error");
+      setRecommendationMessage("Recommendations could not be calculated because the catalogue did not load.");
     }
   }
 
@@ -181,6 +242,7 @@ export function TripPlanner() {
       setLongitude(nextLongitude);
       setLocationName("Current location");
       setLocationMessage("Location applied and saved in this browser.");
+      clearRecommendations();
       window.localStorage.setItem("astro-npf-trip-location", JSON.stringify({ latitude: nextLatitude, longitude: nextLongitude, locationName: "Current location" }));
     }, (error) => setLocationMessage(error.code === 1
       ? "Location permission was not granted. Enter coordinates instead."
@@ -251,6 +313,33 @@ export function TripPlanner() {
             {targetQuery.length >= 2 && catalogStatus === "ready" && <div className="trip-target-matches">{matchingTargets.length > 0 ? matchingTargets.map((target) => <button key={`${target[0]}-${target[2]}-${target[3]}`} onClick={() => addCatalogueTarget(target)}><span><b>{target[9].split(",")[0] || target[0]}</b><small>{target[0]} · {targetTypeLabels[target[1]] ?? target[1]} · {target[4]}</small></span><Plus size={15} /></button>) : <p>No matching catalogue objects.</p>}</div>}
             {targetMessage && <p className="trip-target-message">{targetMessage}</p>}
           </div>
+          <div className="trip-recommendations">
+            <div className="trip-recommendation-heading"><div><Radar size={17} /><span><b>What’s good tonight?</b><small>Rank the catalogue for your location and gear</small></span></div><em>{locationName}</em></div>
+            <div className="trip-recommendation-controls">
+              <label>Night<input type="date" value={recommendationDate} onChange={(event) => { setRecommendationDate(event.target.value); clearRecommendations(); }} /></label>
+              <label>Target type<select value={recommendationFamily} onChange={(event) => { setRecommendationFamily(event.target.value as RecommendationFamily); clearRecommendations(); }}><option value="all">All deep-sky objects</option><option value="galaxy">Galaxies</option><option value="nebula">Nebulae & remnants</option><option value="cluster">Star clusters</option><option value="planetary">Planetary nebulae</option></select></label>
+              <label>Framing<select value={recommendationScale} onChange={(event) => { setRecommendationScale(event.target.value as RecommendationScale); clearRecommendations(); }}><option value="all">Any focal length</option><option value="wide">Wide field · 14–50 mm</option><option value="telephoto">Telephoto · 70–300 mm</option><option value="telescope">Telescope · small targets</option></select></label>
+              <button onClick={findRecommendations} disabled={recommendationStatus === "loading"}><Sparkles size={15} /> {recommendationStatus === "loading" ? "Ranking…" : "Find targets"}</button>
+            </div>
+            {recommendationMessage && <p className={`trip-recommendation-message ${recommendationStatus === "error" ? "error" : ""}`}>{recommendationMessage}</p>}
+            {recommendations.length > 0 && <div className="trip-recommendation-grid">{recommendations.map((recommendation, index) => {
+              const converted = catalogTargetToTripTarget(recommendation.target);
+              const isSelected = customTargets.some((target) => target.id === converted.id);
+              return <article key={converted.id}>
+                <div className="trip-recommendation-rank"><span>#{index + 1} tonight</span><b>{recommendation.score} match</b></div>
+                <h3>{recommendationName(recommendation.target)}</h3>
+                <p>{recommendationCode(recommendation.target)} · {targetTypeLabels[recommendation.target[1]] ?? recommendation.target[1]} · {recommendation.target[4]}</p>
+                <dl>
+                  <div><dt><Maximize2 size={12} /> Peak altitude</dt><dd>{Math.round(recommendation.peakAltitude)}°</dd></div>
+                  <div><dt><Clock3 size={12} /> Best time</dt><dd>{formatTime(recommendation.bestTime)}</dd></div>
+                  <div><dt><Moon size={12} /> Moon gap</dt><dd>{Math.round(recommendation.moonSeparation)}°</dd></div>
+                  <div><dt><Telescope size={12} /> Size</dt><dd>{formatAngularSize(recommendation.sizeArcmin)}</dd></div>
+                </dl>
+                <div className="trip-recommendation-footer"><span>{recommendation.visibleHours.toFixed(1)} h visible · {recommendation.framing}</span><button onClick={() => addCatalogueTarget(recommendation.target)} disabled={isSelected}>{isSelected ? <Check size={14} /> : <Plus size={14} />}{isSelected ? "Selected" : "Add to trip"}</button></div>
+              </article>;
+            })}</div>}
+            <p className="trip-recommendation-note">Uses astronomical darkness, altitude, Moon separation, catalogue brightness, and angular size. Times follow this device’s local clock; update your coordinates in step 2 before ranking a different location.</p>
+          </div>
         </div>
 
         <div className="trip-step trip-location-step">
@@ -258,8 +347,8 @@ export function TripPlanner() {
           <div className="trip-step-heading"><MapPinned size={20} /><div><small>Starting point and range</small><h2>How far will you travel?</h2></div></div>
           <div className="trip-location-row">
             <div>
-              <label>Latitude<input type="number" min="-90" max="90" step="0.0001" value={latitude} onChange={(event) => { setLatitude(Number(event.target.value)); setLocationName("Custom coordinates"); }} /></label>
-              <label>Longitude<input type="number" min="-180" max="180" step="0.0001" value={longitude} onChange={(event) => { setLongitude(Number(event.target.value)); setLocationName("Custom coordinates"); }} /></label>
+              <label>Latitude<input type="number" min="-90" max="90" step="0.0001" value={latitude} onChange={(event) => { setLatitude(Number(event.target.value)); setLocationName("Custom coordinates"); clearRecommendations(); }} /></label>
+              <label>Longitude<input type="number" min="-180" max="180" step="0.0001" value={longitude} onChange={(event) => { setLongitude(Number(event.target.value)); setLocationName("Custom coordinates"); clearRecommendations(); }} /></label>
               <button className="trip-location-button" onClick={requestLocation}><LocateFixed size={16} /> Use my location</button>
             </div>
             <label className="radius-control"><span><b>Travel radius</b><output>{radiusKm} km · {miles(radiusKm)} mi</output></span><input type="range" min="10" max="1000" step="10" value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))} /><small>Straight-line search radius · driving distance may be longer</small></label>

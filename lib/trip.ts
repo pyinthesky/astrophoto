@@ -1,7 +1,7 @@
 import { Body, Equator, Horizon, Illumination, Observer } from "astronomy-engine";
 import { darkSkyPlaces } from "@/lib/dark-sky-places";
 import { milkyWayCore, targetPosition, type EquatorialTarget } from "@/lib/sky";
-import { formatDeclination, formatRightAscension, targetTypeLabels, type TargetTuple } from "@/lib/targets";
+import { formatDeclination, formatRightAscension, targetFamily, targetTypeLabels, type TargetTuple } from "@/lib/targets";
 
 export type TripTarget = EquatorialTarget & {
   shortName: string;
@@ -37,6 +37,22 @@ export type ScoutingPlace = {
   distanceKm: number;
   direction: string;
   source: "certified" | "map";
+};
+
+export type RecommendationFamily = "all" | "galaxy" | "nebula" | "cluster" | "planetary";
+export type RecommendationScale = "all" | "wide" | "telephoto" | "telescope";
+
+export type TargetRecommendation = {
+  target: TargetTuple;
+  score: number;
+  bestTime: Date;
+  peakAltitude: number;
+  visibleHours: number;
+  moonSeparation: number;
+  moonIllumination: number;
+  darkHours: number;
+  sizeArcmin: number | null;
+  framing: string;
 };
 
 export const tripTargets: TripTarget[] = [
@@ -91,6 +107,123 @@ function rating(score: number): NightPlan["rating"] {
   if (score >= 60) return "Good";
   if (score >= 38) return "Possible";
   return "Poor";
+}
+
+const photographicTypes = new Set(["G", "GPair", "GTrpl", "GGroup", "PN", "HII", "DrkN", "EmN", "Neb", "RfN", "SNR", "OCl", "GCl", "Cl+N"]);
+
+function recommendationSizeScore(size: number | null, scale: RecommendationScale) {
+  if (size === null) return scale === "all" ? 0.3 : 0;
+  if (scale === "wide") return clamp((Math.log10(size + 1) - Math.log10(25)) / 0.8);
+  if (scale === "telephoto") {
+    if (size < 5 || size > 240) return 0;
+    return clamp(1 - Math.abs(Math.log10(size) - Math.log10(35)) / 1.1);
+  }
+  if (scale === "telescope") {
+    if (size > 45) return 0;
+    return clamp(1 - Math.abs(Math.log10(Math.max(size, 0.2)) - Math.log10(6)) / 1.5);
+  }
+  return clamp(Math.log10(size + 1) / Math.log10(181));
+}
+
+function framingLabel(size: number | null) {
+  if (size === null) return "Size not listed";
+  if (size >= 90) return "Wide-field target";
+  if (size >= 15) return "Telephoto target";
+  return "Telescope target";
+}
+
+export function recommendCatalogueTargets(
+  catalogue: TargetTuple[],
+  date: Date,
+  latitude: number,
+  longitude: number,
+  family: RecommendationFamily,
+  scale: RecommendationScale,
+  limit = 6,
+) {
+  const observer = new Observer(latitude, longitude, 0);
+  const evening = new Date(date);
+  evening.setHours(18, 0, 0, 0);
+  const morning = new Date(evening);
+  morning.setDate(morning.getDate() + 1);
+  morning.setHours(6, 0, 0, 0);
+  const moonIllumination = Illumination(Body.Moon, evening).phase_fraction * 100;
+  const samples: Array<{ date: Date; moonRa: number; moonDec: number; moonAltitude: number }> = [];
+
+  for (let time = evening.getTime(); time <= morning.getTime(); time += 30 * 60_000) {
+    const sample = new Date(time);
+    if (bodyAltitude(Body.Sun, sample, observer) > -18) continue;
+    const moon = Equator(Body.Moon, sample, observer, false, true);
+    samples.push({ date: sample, moonRa: moon.ra, moonDec: moon.dec, moonAltitude: bodyAltitude(Body.Moon, sample, observer) });
+  }
+
+  if (!samples.length) return [];
+
+  const candidates = catalogue.filter((target) => {
+    if (!photographicTypes.has(target[1])) return false;
+    if (family !== "all" && targetFamily(target[1]) !== family) return false;
+    const size = target[5];
+    if (scale === "wide" && (size === null || size < 25)) return false;
+    if (scale === "telephoto" && (size === null || size < 5 || size > 240)) return false;
+    if (scale === "telescope" && (size === null || size > 45)) return false;
+    const hasKnownIdentity = /(^|\|)M \d+/.test(target[8]) || target[8].includes("Caldwell ") || Boolean(target[9]);
+    return target[7] === null ? hasKnownIdentity : target[7] <= 14.5;
+  });
+
+  const recommendations: TargetRecommendation[] = [];
+  for (const target of candidates) {
+    const tripTarget = catalogTargetToTripTarget(target);
+    let bestScore = -1;
+    let bestTime = samples[0].date;
+    let peakAltitude = -90;
+    let visibleSamples = 0;
+    let bestMoonSeparation = 0;
+
+    for (const sample of samples) {
+      const position = targetPosition(tripTarget, sample.date, latitude, longitude);
+      peakAltitude = Math.max(peakAltitude, position.altitude);
+      if (position.altitude >= 20) visibleSamples += 1;
+      if (position.altitude < 15) continue;
+      const separation = angularSeparation(tripTarget, sample.moonRa, sample.moonDec);
+      const altitudeScore = clamp((position.altitude - 15) / 55);
+      const moonPenalty = sample.moonAltitude > 0
+        ? (moonIllumination / 100) * (0.15 + 0.7 * clamp((100 - separation) / 100))
+        : 0;
+      const skyScore = clamp(altitudeScore * (1 - moonPenalty));
+      if (skyScore > bestScore) {
+        bestScore = skyScore;
+        bestTime = sample.date;
+        bestMoonSeparation = separation;
+      }
+    }
+
+    if (bestScore < 0 || visibleSamples === 0) continue;
+    const size = target[5];
+    const sizeScore = recommendationSizeScore(size, scale);
+    const magnitudeScore = target[7] === null ? 0.35 : clamp((14.5 - target[7]) / 12.5);
+    const identityScore = /(^|\|)M \d+/.test(target[8]) ? 1
+      : target[8].includes("Caldwell ") ? 0.82
+      : target[9] ? 0.62
+      : 0.18;
+    const visibleFraction = clamp(visibleSamples / samples.length);
+    const score = Math.round(100 * (0.5 * bestScore + 0.18 * visibleFraction + 0.14 * sizeScore + 0.1 * magnitudeScore + 0.08 * identityScore));
+    recommendations.push({
+      target,
+      score,
+      bestTime,
+      peakAltitude,
+      visibleHours: visibleSamples * 0.5,
+      moonSeparation: bestMoonSeparation,
+      moonIllumination,
+      darkHours: samples.length * 0.5,
+      sizeArcmin: size,
+      framing: framingLabel(size),
+    });
+  }
+
+  return recommendations
+    .sort((a, b) => b.score - a.score || b.peakAltitude - a.peakAltitude)
+    .slice(0, limit);
 }
 
 export function scoreNight(date: Date, latitude: number, longitude: number, targets: TripTarget[]): NightPlan {
