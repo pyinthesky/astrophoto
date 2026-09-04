@@ -15,7 +15,7 @@ A modern, fully client-side rebuild of Frédéric Michaud's astrophotography cal
 - Monthly Sun and Moon calendar with phases, rise/set times, twilight, astronomical darkness, and moonless observing hours
 - Searchable 13,000-object Messier, Caldwell, NGC, and IC catalogue
 - Optional on-demand cloud, precipitation, wind, visibility, and dew forecast
-- Field-of-view, pixel-scale, star-drift, and integration-time calculators
+- Field-of-view, pixel-scale, star-drift, integration-time, and pixel-étendue / sky-limited SNR comparison calculators
 - Six downloadable Lightroom / Camera Raw XMP presets for night-sky images
 - Persistent OLED night-vision palette with pure black surfaces and dim red controls
 - Indexable static routes, canonical metadata, structured data, sitemap, and social share card

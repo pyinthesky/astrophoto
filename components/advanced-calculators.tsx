@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Aperture, Camera, Clock3, Crosshair, Grid3X3, Info, Sparkles, Telescope } from "lucide-react";
+import { Aperture, Calculator, Camera, Clock3, Crosshair, Grid3X3, Info, Sparkles, Telescope } from "lucide-react";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { SiteHeader } from "@/components/site-header";
+import { PixelEtendueComparator } from "@/components/pixel-etendue-comparator";
 import { brands, cameras } from "@/lib/cameras";
 import { fieldOfView, integrationPlan, pixelScale, samplingAssessment, starDriftPixels } from "@/lib/calculators";
 import { pixelPitch } from "@/lib/npf";
@@ -71,7 +72,7 @@ export function AdvancedCalculators() {
             <p className="eyebrow"><Sparkles size={14} /> Advanced astrophotography calculators</p>
             <h1>Plan the frame.<br /><em>Understand the pixels.</em></h1>
           </div>
-          <p>Four practical tools share one camera setup: field of view, image sampling, visible star drift, and total integration time.</p>
+          <p>Five practical tools cover framing, image sampling, visible star drift, integration time, and side-by-side optical setup performance.</p>
         </div>
 
         <section className="setup-card" aria-label="Shared optical setup">
@@ -149,10 +150,17 @@ export function AdvancedCalculators() {
           </article>
         </div>
 
+        <PixelEtendueComparator
+          sharedPixelPitch={pitch}
+          sharedFocalLength={focalLength}
+          sharedCameraName={camera.model}
+        />
+
         <section className="calculator-methods">
           <div><Aperture size={19} /><span><b>Field of view</b><small>2 × atan(sensor dimension ÷ 2f)</small></span></div>
           <div><Telescope size={19} /><span><b>Image scale</b><small>Angular width of one pixel at focal length f</small></span></div>
           <div><Crosshair size={19} /><span><b>Star drift</b><small>15.041 arcsec/s × cos(declination) × exposure</small></span></div>
+          <div><Calculator size={19} /><span><b>Pixel étendue</b><small>(d² − o²) × throughput × pixel scale²</small></span></div>
         </section>
       </section>
       <footer>
