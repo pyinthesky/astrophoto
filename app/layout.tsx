@@ -51,7 +51,7 @@ const softwareApplicationJsonLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   featureList: [
     "Full declination-aware NPF rule",
-    "Camera sensor and pixel-pitch database",
+    "Searchable camera sensor and pixel-pitch database",
     "Milky Way and bright-star sky planner",
     "Target-aware astrophotography trip planner with nearby scouting areas",
     "Sun and Moon calendar with twilight and moonless-darkness windows",

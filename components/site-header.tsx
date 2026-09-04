@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Aperture, CalendarDays, Calculator, Download, Map, MoonStar, Route, Search } from "lucide-react";
+import { Aperture, CalendarDays, Calculator, Camera, Download, Map, MoonStar, Route, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export type SiteSection = "exposure" | "planner" | "trip" | "calendar" | "calculators" | "targets" | "presets";
+export type SiteSection = "exposure" | "planner" | "trip" | "calendar" | "calculators" | "targets" | "cameras" | "presets";
 
 export function SiteHeader({ active }: { active: SiteSection }) {
   return (
@@ -26,6 +26,9 @@ export function SiteHeader({ active }: { active: SiteSection }) {
         </Link>
         <Link className={active === "targets" ? "active" : ""} href="/targets/">
           <Search size={15} /> Targets
+        </Link>
+        <Link className={active === "cameras" ? "active" : ""} href="/cameras/">
+          <Camera size={15} /> Cameras
         </Link>
         <Link className={active === "calculators" ? "active" : ""} href="/calculators/">
           <Calculator size={15} /> <span className="nav-long">Calculators</span><span className="nav-short">Tools</span>
