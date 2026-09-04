@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
   verification: {
-    google: "B07d6KKvrn_wW2IZnXfUsBmKFbb5SV7gkOgOT2AOETM",
+    google: "0c6rIGtsi0vIXaNJcUnNhDZHn7Hlev-DG2C3p_K-8GA",
   },
   openGraph: {
     type: "website",
